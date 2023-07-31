@@ -3,4 +3,4 @@ Tools for aggregating &amp; analysing outputs from phage bioinformatics tools
 
 ## Defense-finder 
 
-defense-finder run
+defense-finder run filename.faa

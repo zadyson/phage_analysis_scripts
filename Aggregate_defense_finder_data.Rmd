@@ -1,0 +1,83 @@
+---
+title: "Aggregate_defense_finder_data"
+author: "Zoe A. Dyson, zoe.dyson(at)lshtm.ac.uk"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  prettydoc::html_pretty:
+    theme: cayman
+    number_sections: TRUE
+    fig_width: 8.27
+    fig_height: 11.69
+---
+
+## Setup knitr
+```{r setup, include=FALSE}
+
+# Echo chunks
+knitr::opts_chunk$set(echo = TRUE)
+
+# Use local directory
+knitr::opts_knit$set(root.dir = dirname(rstudioapi::getSourceEditorContext()$path))
+
+```
+
+## Import packages and print version numbers
+```{r import_packages}
+
+# R version
+R.Version()$version.string
+
+# Wrangling
+library(tidyverse)
+packageVersion("tidyverse")
+
+```
+
+## Import data and combine
+```{r aggregate_data}
+
+# List defense system files
+output_files <- list.files(path = "./", recursive=T)
+output_files <- output_files[grep("defense_finder_systems.tsv",output_files)]
+
+# Aggregate files and add strain name
+combined <- NULL
+for (file in 1:length(output_files)){
+  temp_file <- read_tsv(output_files[file])
+  temp_file <- temp_file %>%
+    mutate(file_id = output_files[file]) %>%
+    relocate(file_id) %>%
+    mutate(file_id = gsub("/defense_finder_systems.tsv","", file_id)) %>%
+    mutate(file_id = gsub("Enrichment_pool/", "", file_id)) %>%
+    mutate(file_id = gsub("KL10/", "", file_id)) %>%
+    mutate(file_id = gsub("KL21/", "", file_id)) %>%
+    mutate(file_id = gsub("Relatives/", "", file_id))
+  combined <- rbind(combined, temp_file)
+}
+
+# Check format
+head(combined)
+dim(combined)
+
+```
+
+## Reshape data into presence/absence matrix format
+```{r reshape_data}
+
+combined_matrix <- combined %>%
+  group_by(file_id, subtype) %>%
+  count() %>%
+  spread(subtype,n) %>%
+  replace(is.na(.), 0) %>%
+  replace(.==2,1) %>%
+  replace(.==3,1) %>%
+  replace(.==4,1)
+
+```
+
+## Output csv file 
+```{r output_table}
+
+write.csv(combined_matrix, "combined_defense_finder.csv")
+
+```
